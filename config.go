@@ -132,3 +132,31 @@ func (c *TinyConf) createFile(config interface{}) error {
 
 	return c.fileProcessor.Write(file, config)
 }
+
+// LoadWithEnv loads configuration from file and then overrides values with environment variables.
+// Use the `env` struct tag to specify the environment variable name.
+// Example: `env:"APP_SECRET"` will load the value from the APP_SECRET environment variable.
+func (c *TinyConf) LoadWithEnv(config interface{}) error {
+	if err := c.Load(config); err != nil {
+		return err
+	}
+
+	return applyEnvOverrides(config)
+}
+
+// LoadOrExitWithEnv tries to load configuration from file and overrides with env variables.
+// If the file doesn't exist, a new one is created and the program exits.
+func (c *TinyConf) LoadOrExitWithEnv(config interface{}) error {
+	exists := c.Exists()
+
+	if err := c.LoadWithEnv(config); err != nil {
+		return err
+	}
+
+	if !exists {
+		log.Println(fmt.Sprintf("A new file has been created: %s. Please edit it and restart the program.", c.filePath))
+		c.exitFunc(c.exitCode)
+	}
+
+	return nil
+}
